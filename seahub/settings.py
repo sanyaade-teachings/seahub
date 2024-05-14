@@ -1022,6 +1022,8 @@ if ENABLE_ADFS_LOGIN or ENABLE_MULTI_ADFS:
 if ENABLE_LDAP:
     AUTHENTICATION_BACKENDS += ('seahub.base.accounts.CustomLDAPBackend',)
 
+MIDDLEWARE.append('seahub.institutions.middleware.InstitutionMiddleware')
+
 #####################
 # Custom Nav Items  #
 #####################

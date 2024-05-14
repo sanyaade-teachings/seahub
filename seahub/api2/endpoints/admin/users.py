@@ -51,6 +51,7 @@ from seahub.role_permissions.models import AdminRole
 from seahub.role_permissions.utils import get_available_roles
 from seahub.utils.licenseparse import user_number_over_limit
 from seahub.institutions.models import Institution
+from seahub.institutions.utils import get_institution_available_quota
 from seahub.avatar.templatetags.avatar_tags import api_avatar_url
 from seahub.admin_log.signals import admin_operation
 from seahub.admin_log.models import USER_DELETE, USER_ADD
