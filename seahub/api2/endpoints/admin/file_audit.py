@@ -10,7 +10,7 @@ from rest_framework import status
 from seaserv import seafile_api
 
 from seahub.api2.endpoints.utils import check_time_period_valid, \
-    get_log_events_by_type_and_time
+    get_log_events_by_type_and_time, export_file_audit_to_excel
 
 from seahub.api2.authentication import TokenAuthentication
 from seahub.api2.throttling import UserRateThrottle
@@ -21,6 +21,11 @@ from seahub.api2.endpoints.utils import get_user_name_dict, \
         get_user_contact_email_dict
 
 from seahub.utils.timeutils import datetime_to_isoformat_timestr
+
+from django.contrib import messages
+from seahub.settings import SITE_ROOT
+from seahub.utils import is_pro_version, query_fileaudit_export_status
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -94,3 +99,54 @@ class FileAudit(APIView):
                 })
 
         return Response(result)
+
+
+class FileAuditExport(APIView):
+    authentication_classes = (TokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAdminUser, IsProVersion)
+    throttle_classes = (UserRateThrottle,)
+
+    def get(self, request):
+        next_page = request.headers.get('referer', None)
+        if not next_page:
+            next_page = SITE_ROOT
+
+        if not is_pro_version():
+            messages.error(request, _('Failed to export excel, this feature is only in professional version.'))
+            return HttpResponseRedirect(next_page)
+
+        start = request.GET.get('start', None)
+        end = request.GET.get('end', None)
+        if not check_time_period_valid(start, end):
+            messages.error(request, _('Failed to export excel, invalid start or end date'))
+            return HttpResponseRedirect(next_page)
+        task_id = export_file_audit_to_excel(start, end)
+        return Response({'task_id': task_id}, status=status.HTTP_200_OK)
+
+
+class FileAuditExportStatus(APIView):
+    authentication_classes = (TokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAdminUser, IsProVersion)
+    throttle_classes = (UserRateThrottle,)
+
+    def get(self, request):
+        """
+        Get task status by task id
+        :param request:
+        :return:
+        """
+        task_id = request.GET.get('task_id', '')
+        if not task_id:
+            error_msg = 'task_id invalid.'
+            return api_error(status.HTTP_400_BAD_REQUEST, error_msg)
+
+        resp = query_fileaudit_export_status(task_id)
+        if resp.status_code == 500:
+            logger.error('seafile io query status error: %s, %s' % (task_id, resp.text))
+            return api_error(status.HTTP_500_INTERNAL_SERVER_ERROR, 'Internal Server Error')
+
+        if not resp.status_code == 200:
+            return api_error(resp.status_code, resp.content)
+
+        is_finished = json.loads(resp.content)['is_finished']
+        return Response({'is_finished': is_finished})

@@ -658,6 +658,22 @@ if EVENTS_CONFIG_FILE:
 
         return events if events else None
 
+    def get_file_audit_task(tstart, tend):
+        """
+        Return task id
+        """
+        with _get_seafevents_session() as session:
+            task_id = seafevents_api.get_file_audit_task(session, tstart, tend)
+
+        return task_id if task_id else None
+
+    def query_fileaudit_export_status(task_id):
+        """
+        Return task status
+        """
+        res = seafevents_api.query_status(task_id)
+        return res
+
     def generate_file_audit_event_type(e):
 
         event_type_dict = {
@@ -829,6 +845,10 @@ else:
     def get_org_user_activity_stats_by_day():
         pass
     def get_log_events_by_time():
+        pass
+    def get_file_audit_task():
+        pass
+    def query_fileaudit_export_status():
         pass
     def get_user_activities():
         pass
@@ -1165,7 +1185,6 @@ if HAS_OFFICE_CONVERTER:
         try:
             add_office_convert_task(obj_id, doctype, raw_path)
         except Exception as e:
-            print(e)
             logging.exception('failed to add_office_convert_task: %s' % e)
             return _('Internal Server Error')
         return None

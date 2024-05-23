@@ -126,7 +126,7 @@ from seahub.api2.endpoints.extended_properties import ExtendedPropertiesView, Ap
 from seahub.api2.endpoints.admin.abuse_reports import AdminAbuseReportsView, AdminAbuseReportView
 from seahub.api2.endpoints.admin.revision_tag import AdminTaggedItemsView
 from seahub.api2.endpoints.admin.login_logs import LoginLogs, AdminLoginLogs
-from seahub.api2.endpoints.admin.file_audit import FileAudit
+from seahub.api2.endpoints.admin.file_audit import FileAudit, FileAuditExport, FileAuditExportStatus
 from seahub.api2.endpoints.admin.file_update import FileUpdate
 from seahub.api2.endpoints.admin.perm_audit import PermAudit
 from seahub.api2.endpoints.admin.sysinfo import SysInfo
@@ -886,6 +886,8 @@ if is_pro_version():
         path('sys/loginadmin/export-excel/', sys_login_admin_export_excel, name='sys_login_admin_export_excel'),
 
         re_path(r'^api/v2.1/admin/logs/file-audit/$', FileAudit.as_view(), name='api-v2.1-admin-logs-file-audit'),
+        re_path(r'^api/v2.1/admin/logs/file-audit/export-excel/$', FileAuditExport.as_view(), name='api-v2.1-admin-logs-file-audit-export-excel'),
+        re_path(r'^api/v2.1/query-export-status/$', FileAuditExportStatus.as_view(), name='api-v2.1-query-export-status'),
         path('sys/log/fileaudit/export-excel/', sys_log_file_audit_export_excel, name='sys_log_file_audit_export_excel'),
 
         re_path(r'^api/v2.1/admin/logs/file-update/$', FileUpdate.as_view(), name='api-v2.1-admin-logs-file-update'),

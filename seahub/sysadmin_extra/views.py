@@ -6,12 +6,13 @@ from django.shortcuts import render
 
 from django.utils.translation import gettext as _
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404, FileResponse
 from django.core.exceptions import ValidationError
-
+from urllib.parse import quote
 from seahub.api2.endpoints.utils import check_time_period_valid, \
     get_log_events_by_type_and_time
 
+from seahub.api2.utils import api_error
 from seahub.base.decorators import sys_staff_required
 from seahub.auth.decorators import login_required
 from seahub.sysadmin_extra.models import UserLoginLog
@@ -77,56 +78,19 @@ def sys_login_admin_export_excel(request):
 def sys_log_file_audit_export_excel(request):
     """ Export file access logs to excel.
     """
-    next_page = request.headers.get('referer', None)
-    if not next_page:
-        next_page = SITE_ROOT
+    task_id = request.GET.get('task_id', '')
+    if not task_id:
+        error_msg = 'task_id invalid.'
+        return api_error(status.HTTP_400_BAD_REQUEST, error_msg)
+    excel_name = 'file-access-logs.xlsx'
+    target_dir = '/tmp/seafile_events/'
+    tmp_excel_path = os.path.join(target_dir, excel_name)
+    if not os.path.isfile(tmp_excel_path):
+        return api_error(status.HTTP_404_NOT_FOUND, excel_name + ' not found.')
 
-    if not is_pro_version():
-        messages.error(request, _('Failed to export excel, this feature is only in professional version.'))
-        return HttpResponseRedirect(next_page)
-
-    start = request.GET.get('start', None)
-    end = request.GET.get('end', None)
-    if not check_time_period_valid(start, end):
-        messages.error(request, _('Failed to export excel, invalid start or end date'))
-        return HttpResponseRedirect(next_page)
-
-    events = get_log_events_by_type_and_time('file_audit', start, end)
-
-    head = [_("User"), _("Type"), _("IP"), _("Device"), _("Date"),
-            _("Library Name"), _("Library ID"), _("Library Owner"), _("File Path")]
-    data_list = []
-
-    events.sort(key=lambda x: x.timestamp, reverse=True)
-    for ev in events:
-        event_type, ev.show_device = generate_file_audit_event_type(ev)
-
-        repo_id = ev.repo_id
-        repo = seafile_api.get_repo(repo_id)
-        if repo:
-            repo_name = repo.name
-            repo_owner = seafile_api.get_repo_owner(repo_id) or \
-                    seafile_api.get_org_repo_owner(repo_id)
-        else:
-            repo_name = _('Deleted')
-            repo_owner = '--'
-
-        username = ev.user if ev.user else _('Anonymous User')
-        date = utc_to_local(ev.timestamp).strftime('%Y-%m-%d %H:%M:%S') if \
-            ev.timestamp else ''
-
-        row = [username, event_type, ev.ip, ev.show_device,
-               date, repo_name, ev.repo_id, repo_owner, ev.file_path]
-        data_list.append(row)
-
-    wb = write_xls('file-access-logs', head, data_list)
-    if not wb:
-        messages.error(request, _('Failed to export excel'))
-        return HttpResponseRedirect(next_page)
-
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename=file-access-logs.xlsx'
-    wb.save(response)
+    # tmp-excel-file is in container, for download multiple times do not delete it
+    response = FileResponse(open(tmp_excel_path, 'rb'), content_type='application/ms-excel', as_attachment=True)
+    response['Content-Disposition'] = 'attachment;filename*=UTF-8\'\'' + quote(excel_name)
     return response
 
 @login_required

@@ -2,6 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter, FormGroup, Label, Input, Alert } from 'reactstrap';
 import { gettext, siteRoot } from '../../../utils/constants';
+import { seafileAPI } from '../../../utils/seafile-api';
+import toaster from '../../../components/toast';
 import moment from 'moment';
 
 class LogsExportExcelDialog extends React.Component {
@@ -13,6 +15,7 @@ class LogsExportExcelDialog extends React.Component {
       startDateStr: '',
       endDateStr: '',
       errMsg: '',
+      taskId: '',
     };
   }
 
@@ -28,7 +31,8 @@ class LogsExportExcelDialog extends React.Component {
         url += 'sys/loginadmin/export-excel/';
         break;
       case 'fileAccess':
-        url += 'sys/log/fileaudit/export-excel/';
+        // url += 'sys/log/fileaudit/export-excel/';
+        this.exportFileAccess();
         break;
       case 'fileUpdate':
         url += 'sys/log/fileupdate/export-excel/';
@@ -37,8 +41,43 @@ class LogsExportExcelDialog extends React.Component {
         url += 'sys/log/permaudit/export-excel/';
         break;
     }
-    location.href = url + '?start=' + startDateStr + '&end=' + endDateStr;
-    this.props.toggle();
+    if (this.props.logType != 'fileAccess'){
+      location.href = url + '?start=' + startDateStr + '&end=' + endDateStr;
+      this.props.toggle();
+    }
+  };
+
+  exportFileAccess = () =>{
+    let { startDateStr, endDateStr } = this.state;
+    let task_id = '';
+    seafileAPI.sysAdminExportFileAccessExcel(startDateStr, endDateStr).then(res => {
+      task_id = res.data.task_id;
+      this.setState({
+        taskId: task_id
+      });
+      this.props.toggle();
+      return seafileAPI.queryAsyncOperationExportExcel(task_id);
+    }).then(res => {
+      if (res.data.is_finished === true){
+        location.href = siteRoot + 'sys/log/fileaudit/export-excel/?task_id=' + task_id;
+      } else {
+        this.timer = setInterval(() => {
+          seafileAPI.queryAsyncOperationExportExcel(task_id).then(res => {
+            if (res.data.is_finished === true){
+              this.setState({isFinished: true});
+              clearInterval(this.timer);
+              location.href = siteRoot + 'sys/log/fileaudit/export-excel/?task_id=' + task_id;
+            }
+          }).catch(err => {
+            if (this.state.isFinished === false){
+              clearInterval(this.timer);
+              toaster.danger(gettext('Failed to export. Please check whether the size of table attachments exceeds the limit.'));
+
+            }
+          });
+        }, 1000);
+      }
+    });
   };
 
   isValidDateStr = () => {

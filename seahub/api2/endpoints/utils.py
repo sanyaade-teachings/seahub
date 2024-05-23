@@ -16,7 +16,8 @@ from seaserv import ccnet_api, seafile_api
 
 from seahub.api2.utils import api_error
 from seahub.base.templatetags.seahub_tags import email2nickname, email2contact_email
-from seahub.utils import get_log_events_by_time, is_pro_version, is_org_context
+from seahub.utils import get_log_events_by_time, is_pro_version, is_org_context, \
+                        get_file_audit_task
 
 from seahub.settings import SEADOC_PRIVATE_KEY, FILE_CONVERTER_SERVER_URL
 
@@ -282,3 +283,16 @@ def sdoc_export_to_docx(path, username, doc_uuid, download_token,
     resp = requests.post(url, json=params, headers=headers, timeout=30)
 
     return resp
+
+
+def export_file_audit_to_excel(start, end):
+    start_struct_time = datetime.datetime.strptime(start, "%Y-%m-%d")
+    start_timestamp = time.mktime(start_struct_time.timetuple())
+
+    end_struct_time = datetime.datetime.strptime(end, "%Y-%m-%d")
+    end_timestamp = time.mktime(end_struct_time.timetuple())
+    end_timestamp += 24 * 60 * 60
+
+    task_id = get_file_audit_task(start_timestamp, end_timestamp)
+    task_id = task_id if task_id else None
+    return task_id
