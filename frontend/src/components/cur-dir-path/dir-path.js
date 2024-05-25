@@ -5,6 +5,7 @@ import { UncontrolledTooltip } from 'reactstrap';
 import { siteRoot, gettext } from '../../utils/constants';
 import { Utils } from '../../utils/utils';
 import { InternalLinkOperation } from '../operations';
+import DirOperationToolBar from '../../components/toolbar/dir-operation-toolbar';
 
 const propTypes = {
   repoName: PropTypes.string.isRequired,
@@ -50,7 +51,21 @@ class DirPath extends React.Component {
         return (
           <Fragment key={index}>
             <span className="path-split">/</span>
-            <span className="path-file-name">{item}</span>
+            <DirOperationToolBar
+          path={this.props.currentPath}
+              repoID={this.props.repoID}
+               repoName={this.props.repoName}
+               repoEncrypted={this.props.repoEncrypted}
+               direntList={this.props.direntList}
+               showShareBtn={this.props.showShareBtn}
+               enableDirPrivateShare={this.props.enableDirPrivateShare}
+               userPerm={this.props.userPerm}
+               isGroupOwnedRepo={this.props.isGroupOwnedRepo}
+               onAddFile={this.props.onAddFile}
+               onAddFolder={this.props.onAddFolder}
+               onUploadFile={this.props.onUploadFile}
+               onUploadFolder={this.props.onUploadFolder}
+          ><span className="path-file-name">{item}</span></DirOperationToolBar>
           </Fragment>
         );
       } else {
@@ -101,7 +116,22 @@ class DirPath extends React.Component {
           </Fragment>
         )}
         {(currentPath === '/' || currentPath === '') ?
-          <span className="path-repo-name">{repoName}</span>:
+          <DirOperationToolBar
+          path={this.props.currentPath}
+              repoID={this.props.repoID}
+               repoName={this.props.repoName}
+               repoEncrypted={this.props.repoEncrypted}
+               direntList={this.props.direntList}
+               showShareBtn={this.props.showShareBtn}
+               enableDirPrivateShare={this.props.enableDirPrivateShare}
+               userPerm={this.props.userPerm}
+               isGroupOwnedRepo={this.props.isGroupOwnedRepo}
+               onAddFile={this.props.onAddFile}
+               onAddFolder={this.props.onAddFolder}
+               onUploadFile={this.props.onUploadFile}
+               onUploadFolder={this.props.onUploadFolder}
+
+            ><span className="path-repo-name">{repoName}</span></DirOperationToolBar>:
           <a className="path-link" data-path="/" onClick={this.onPathClick}>{repoName}</a>
         }
         {pathElem}

@@ -2138,6 +2138,7 @@ class LibContentView extends React.Component {
             updateDetail={this.state.updateDetail}
             onListContainerScroll={this.onListContainerScroll}
             loadDirentList={this.loadDirentList}
+            showShareBtn={showShareBtn}
           />
           {canUpload && this.state.pathExist && !this.state.isViewFile && (
             <FileUploader
